@@ -1,0 +1,26 @@
+{% extends "base_internal.html" %}
+{% block title %}Households — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div><h1>Households</h1><div class="sub">Filter by capability to find a match fast — tags are AND-combined.</div></div>
+</div>
+
+<form class="card cardbody" style="margin-bottom:1rem"
+      hx-get="{% url 'household_list' %}" hx-target="#hh-rows" hx-trigger="change, keyup delay:300ms from:find input" hx-push-url="true">
+  <div class="filters" style="margin-bottom:.6rem">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search name or email…" aria-label="Search households">
+    <label class="check" style="font-weight:600"><input type="checkbox" name="active" value="1" checked> Active only</label>
+  </div>
+  <div>
+    {% for tag in tags %}
+      <label class="tagchip {% if tag.category == 'environment' %}env{% endif %}" style="cursor:pointer">
+        <input type="checkbox" name="tag" value="{{ tag.pk }}" {% if tag.pk in selected_tags %}checked{% endif %} style="vertical-align:-2px"> {{ tag.name }}
+      </label>
+    {% endfor %}
+  </div>
+</form>
+
+<div id="hh-rows" class="card tablewrap">
+  {% include "people/_household_rows.html" %}
+</div>
+{% endblock %}

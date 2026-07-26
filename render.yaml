@@ -1,0 +1,24 @@
+# Render "Blueprint" — lets you deploy with one click from the Render dashboard
+# (New > Blueprint > point at this repo) instead of configuring the service by hand.
+databases:
+  - name: longleaf-db
+    plan: free
+
+services:
+  - type: web
+    name: longleaf-rescue
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "python manage.py migrate --noinput && gunicorn config.wsgi"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "0"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: longleaf-db
+          property: connectionString

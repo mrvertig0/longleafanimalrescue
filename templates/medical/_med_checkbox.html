@@ -1,0 +1,8 @@
+<button class="medcheck {% if row.entry.given %}given{% endif %}"
+        hx-post="{% url 'toggle_med' row.med.pk %}"
+        hx-vals='{"date": "{{ day|date:"Y-m-d" }}"}'
+        hx-swap="outerHTML"
+        title="{{ row.med.instructions|default:row.med.frequency }}">
+  <span class="box">{% if row.entry.given %}✓{% endif %}</span>
+  <span>{{ row.med.name }}{% if row.med.dosage %} · {{ row.med.dosage }}{% endif %}</span>
+</button>
