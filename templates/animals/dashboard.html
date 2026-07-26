@@ -1,0 +1,35 @@
+{% extends "base_internal.html" %}
+{% block title %}Animals — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>Command dashboard</h1>
+    <div class="sub">{{ animals|length }} animal{{ animals|length|pluralize }} shown ·
+      {% if alert_count %}<strong style="color:var(--red)">{{ alert_count }} with medical alerts</strong>{% else %}no medical alerts{% endif %}</div>
+  </div>
+  <a class="btn" href="{% url 'animal_create' %}">+ New intake</a>
+</div>
+
+<form class="filters card cardbody" style="margin-bottom:1rem"
+      hx-get="{% url 'dashboard' %}" hx-target="#dash-table" hx-trigger="change, keyup delay:300ms from:find input"
+      hx-push-url="true">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search name, ID, breed…" aria-label="Search">
+  <select name="status" aria-label="Status filter">
+    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>All active (not adopted)</option>
+    <option value="" {% if status_filter == '' %}selected{% endif %}>Everything</option>
+    {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="species" aria-label="Species filter">
+    <option value="">All species</option>
+    {% for value, label in species_choices %}
+      <option value="{{ value }}" {% if species_filter == value %}selected{% endif %}>{{ label }}s</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div id="dash-table" class="card tablewrap">
+  {% include "animals/_dashboard_table.html" %}
+</div>
+{% endblock %}

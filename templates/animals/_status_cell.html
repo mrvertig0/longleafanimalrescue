@@ -1,0 +1,10 @@
+<div>
+  <select class="statuspick" aria-label="Status for {{ animal.name }}"
+          hx-post="{% url 'animal_status' animal.pk %}" name="status"
+          hx-target="closest div" hx-swap="outerHTML">
+    {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if animal.status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if toast %}<span class="gateblock">⛔ {{ toast }}</span>{% endif %}
+</div>

@@ -1,0 +1,72 @@
+{% extends "base_internal.html" %}
+{% block title %}{{ household.name }} — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div><h1>{{ household.name }}</h1>
+    <div class="sub">{{ household.primary_contact }} · {{ household.email }}{% if household.phone %} · {{ household.phone }}{% endif %}</div>
+  </div>
+</div>
+<div class="hhgrid">
+  <div style="display:grid;gap:1rem">
+    <div class="card">
+      <div class="cardhead">Household & environment</div>
+      <div class="cardbody">
+        <p style="margin-top:0">{{ household.get_home_type_display }} · {% if household.owns_home %}owns{% else %}rents{% endif %}{% if household.has_fenced_yard %} · fenced yard{% endif %}<br>
+        {% if household.address %}{{ household.address }}, {% endif %}{{ household.city }}{% if household.state %}, {{ household.state }}{% endif %} {{ household.zip_code }}</p>
+        {% if household.environment_notes %}<p>{{ household.environment_notes }}</p>{% endif %}
+        <h3 style="font-size:.95rem">People</h3>
+        <ul style="margin:.2rem 0 .8rem;padding-left:1.1rem">
+          <li>{{ household.primary_contact }} <em>(primary)</em></li>
+          {% for p in household.people.all %}<li>{{ p }}{% if p.relationship %} <em>({{ p.relationship }})</em>{% endif %}</li>{% endfor %}
+        </ul>
+        <h3 style="font-size:.95rem">Resident pets</h3>
+        {% for pet in household.resident_pets.all %}
+          <p style="margin:.2rem 0">{{ pet.name }} — {{ pet.species }}{% if pet.age_years %}, {{ pet.age_years }}y{% endif %}
+            {% if pet.spayed_neutered %}· fixed{% endif %}{% if pet.up_to_date_vaccines %}· vaccinated{% endif %}</p>
+        {% empty %}<p style="color:var(--ink-soft);margin:.2rem 0">No resident pets.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardhead">Foster & adoption history</div>
+      <div class="tablewrap"><table class="data">
+        <thead><tr><th>Animal</th><th>Type</th><th>Start</th><th>End</th></tr></thead>
+        <tbody>
+          {% for p in household.placement_history %}
+            <tr><td><a href="{{ p.animal.get_absolute_url }}">{{ p.animal.name }}</a> <span style="font-family:var(--mono);font-size:.75rem;color:var(--ink-soft)">{{ p.animal.code }}</span></td>
+            <td>{{ p.get_placement_type_display }}</td><td>{{ p.start_date }}</td>
+            <td>{% if p.end_date %}{{ p.end_date }}{% else %}<em>current</em>{% endif %}</td></tr>
+          {% empty %}<tr><td colspan="4" style="color:var(--ink-soft)">No placements yet.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div style="display:grid;gap:1rem">
+    <div class="card">
+      <div class="cardhead">Capability tags</div>
+      <div class="cardbody">
+        {% include "people/_tag_editor.html" with all_tags=all_tags %}
+        <p class="help" style="color:var(--ink-soft);font-size:.78rem;margin-bottom:0">Tags auto-apply from form answers; click to adjust.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardhead">Applications</div>
+      <div class="cardbody">
+        {% for app in applications %}
+          <div style="border-bottom:1px dashed var(--line);padding:.5rem 0">
+            <strong>{{ app.get_app_type_display }}</strong> · <span class="pill {{ app.stage }}">{{ app.get_stage_display }}</span>
+            {% if app.animal %}<br>Interested in <a href="{{ app.animal.get_absolute_url }}">{{ app.animal.name }}</a>{% endif %}
+            <br><span style="color:var(--ink-soft);font-size:.8rem">{{ app.created_at|date:"M j, Y" }}</span>
+            <form method="post" action="{% url 'application_note' app.pk %}" style="margin-top:.4rem;display:flex;gap:.4rem">{% csrf_token %}
+              <input name="notes" value="{{ app.notes }}" placeholder="Internal note…">
+              <button class="btn small secondary" type="submit">Save</button>
+            </form>
+          </div>
+        {% empty %}<p style="color:var(--ink-soft)">No applications on file.</p>{% endfor %}
+        <a class="btn small secondary" style="margin-top:.7rem" href="{% url 'kanban' %}">Open pipeline board →</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

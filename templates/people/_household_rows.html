@@ -1,0 +1,16 @@
+<table class="data">
+  <thead><tr><th>Household</th><th>Contact</th><th>Environment</th><th>Tags</th><th>History</th></tr></thead>
+  <tbody>
+    {% for h in households %}
+      <tr>
+        <td><a href="{{ h.get_absolute_url }}"><strong>{{ h.name }}</strong></a>{% if not h.is_active %} <span class="pill adopted">inactive</span>{% endif %}</td>
+        <td>{{ h.primary_contact }}<br><span style="color:var(--ink-soft);font-size:.8rem">{{ h.email }}</span></td>
+        <td style="font-size:.85rem">{{ h.get_home_type_display }}{% if h.has_fenced_yard %} · fenced yard{% endif %}{% if h.resident_pets.all %} · {{ h.resident_pets.all|length }} pet{{ h.resident_pets.all|length|pluralize }}{% endif %}</td>
+        <td>{% for t in h.tags.all %}<span class="tagchip {% if t.category == 'environment' %}env{% endif %}">{{ t.name }}</span>{% endfor %}</td>
+        <td>{{ h.placement_count }} placement{{ h.placement_count|pluralize }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:2rem">No households match those filters.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

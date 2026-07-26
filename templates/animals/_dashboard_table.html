@@ -1,0 +1,39 @@
+<table class="data">
+  <thead>
+    <tr>
+      <th>Animal</th><th>Demographic</th><th>Placement</th><th>Status</th><th>Medical alerts</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for animal in animals %}
+    {% with alert=animal.medical_alert %}
+    <tr class="{% if alert == 'overdue' %}rail-red{% elif alert == 'due' %}rail-amber{% endif %}">
+      <td>
+        <a class="animalcell" href="{{ animal.get_absolute_url }}">
+          {% if animal.photo %}<img class="thumb" src="{{ animal.photo.url }}" alt="">{% else %}<span class="thumb">{{ animal.name|first }}</span>{% endif %}
+          <span><span class="nm">{{ animal.name }}</span><br><span class="cd">{{ animal.code }}</span></span>
+        </a>
+      </td>
+      <td>{{ animal.age_display }} · {{ animal.get_species_display }}{% if animal.breed %} · {{ animal.breed }}{% endif %}</td>
+      <td>
+        {% with p=animal.current_placement %}
+          {% if p %}<a href="{{ p.household.get_absolute_url }}">{{ p.household.name }}</a>
+            <span class="cd" style="color:var(--ink-soft);font-size:.76rem">({{ p.get_placement_type_display|lower }})</span>
+          {% else %}Facility{% endif %}
+        {% endwith %}
+      </td>
+      <td>{% include "animals/_status_cell.html" %}</td>
+      <td>
+        {% if alert == 'overdue' %}<span class="badge overdue"><span class="dot red"></span> Overdue</span>
+        {% elif alert == 'due' %}<span class="badge due"><span class="dot amber"></span> Due soon</span>
+        {% else %}<span class="badge ok"><span class="dot green"></span> Clear</span>{% endif %}
+      </td>
+    </tr>
+    {% endwith %}
+  {% empty %}
+    <tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:2rem">
+      No animals match. <a href="{% url 'animal_create' %}">Add the first intake</a>.
+    </td></tr>
+  {% endfor %}
+  </tbody>
+</table>

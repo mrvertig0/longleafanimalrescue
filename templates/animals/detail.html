@@ -1,0 +1,130 @@
+{% extends "base_internal.html" %}
+{% block title %}{{ animal.name }} — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>{{ animal.name }} <span class="cd" style="font-family:var(--mono);font-size:.85rem;color:var(--ink-soft)">{{ animal.code }}</span></h1>
+    <div class="sub">{{ animal.age_display }} · {{ animal.get_species_display }}{% if animal.breed %} · {{ animal.breed }}{% endif %} · {{ animal.get_sex_display }} · intake {{ animal.intake_date }}</div>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center">
+    {% include "animals/_status_cell.html" %}
+    <a class="btn secondary" href="{% url 'animal_edit' animal.pk %}">Edit</a>
+  </div>
+</div>
+
+<div class="detailgrid">
+  <div style="display:grid;gap:1rem">
+    <div class="card">
+      {% if animal.photo %}<img src="{{ animal.photo.url }}" alt="{{ animal.name }}" style="width:100%;border-radius:10px 10px 0 0;aspect-ratio:4/3;object-fit:cover">{% endif %}
+      <div class="cardbody">
+        <strong>Placement:</strong>
+        {% with p=animal.current_placement %}
+          {% if p %}<a href="{{ p.household.get_absolute_url }}">{{ p.household.name }}</a> ({{ p.get_placement_type_display|lower }} since {{ p.start_date }})
+            <form method="post" action="{% url 'end_placement' animal.pk p.pk %}" style="margin-top:.5rem">{% csrf_token %}
+              <button class="btn small danger" type="submit">Return to facility</button>
+            </form>
+          {% else %}Facility{% endif %}
+        {% endwith %}
+        <hr style="border:0;border-top:1px solid var(--line)">
+        <form class="inline-form" method="post" action="{% url 'add_placement' animal.pk %}">{% csrf_token %}
+          <div class="field"><label>Place with</label>{{ placement_form.household }}</div>
+          <div class="field"><label>Type</label>{{ placement_form.placement_type }}</div>
+          <div class="field"><label>Start</label>{{ placement_form.start_date }}</div>
+          <button class="btn small" type="submit">Place</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardhead">Medications</div>
+      <div class="cardbody">
+        {% for med in animal.medications.all %}
+          <div style="margin-bottom:.5rem"><strong>{{ med.name }}</strong> {{ med.dosage }} — {{ med.frequency }}
+            <span class="cd" style="font-size:.78rem;color:var(--ink-soft)">
+              {{ med.start_date }}{% if med.end_date %} → {{ med.end_date }}{% endif %}{% if not med.is_active %} (inactive){% endif %}
+            </span>
+          </div>
+        {% empty %}<p style="color:var(--ink-soft)">No medications.</p>{% endfor %}
+        <details><summary style="cursor:pointer;font-weight:600">+ Add medication</summary>
+          <form method="post" action="{% url 'add_medication' animal.pk %}" style="margin-top:.6rem;display:grid;gap:.5rem">{% csrf_token %}
+            <input name="name" placeholder="Name (e.g. Panacur)" required>
+            <div class="grid2">
+              <input name="dosage" placeholder="Dosage (e.g. 0.5 ml)">
+              <input name="frequency" placeholder="Frequency" value="Once daily">
+              <input type="date" name="start_date" value="{{ today|date:'Y-m-d' }}" required>
+              <input type="date" name="end_date">
+            </div>
+            <input name="instructions" placeholder="Instructions for foster">
+            <button class="btn small" type="submit">Add</button>
+          </form>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead">Medical timeline
+      <form method="post" action="{% url 'regenerate_schedule' animal.pk %}">{% csrf_token %}
+        <button class="btn small secondary" type="submit" title="Re-project pending auto-generated milestones from intake date + estimated age">↻ Re-project</button>
+      </form>
+    </div>
+    <div class="cardbody">
+      {% with missing=animal.incomplete_mandatory_milestones %}
+        {% if missing %}
+          <p class="badge overdue" style="margin-top:0">⛔ Gatekeeper: can't go Available until
+            {% for m in missing %}{{ m.name }}{% if not forloop.last %}, {% endif %}{% endfor %} complete</p>
+        {% else %}
+          <p class="badge ok" style="margin-top:0"><span class="dot green"></span> All mandatory milestones complete — Available is unlocked</p>
+        {% endif %}
+      {% endwith %}
+      <ul class="timeline">
+        {% for e in events %}
+          <li class="{{ e.state }}">
+            <span class="when">{{ e.due_date|date:"M j, Y" }}</span>
+            <span class="what">{{ e.display_label }}{% if e.milestone_type.mandatory_for_available %} <span class="mandatory-star" title="Required before Available">*</span>{% endif %}
+              {% if e.state == 'overdue' %}<span class="badge overdue">overdue</span>
+              {% elif e.state == 'due' %}<span class="badge due">due soon</span>{% endif %}
+              {% if e.completed_date %}<span class="cd" style="font-size:.75rem;color:var(--ink-soft)">done {{ e.completed_date }} by {{ e.completed_by }}</span>{% endif %}
+            </span>
+            <form method="post" action="{% url 'complete_event' e.pk %}">{% csrf_token %}
+              <button class="btn small {% if e.completed_date %}secondary{% endif %}" type="submit">
+                {% if e.completed_date %}Undo{% else %}Mark done{% endif %}
+              </button>
+            </form>
+          </li>
+        {% empty %}<li>No milestones yet — hit “Re-project”.</li>{% endfor %}
+      </ul>
+      <p class="help" style="color:var(--ink-soft);font-size:.78rem"><span class="mandatory-star">*</span> mandatory before the animal can be marked Available.</p>
+
+      <details><summary style="cursor:pointer;font-weight:600">+ Add milestone manually</summary>
+        <form class="inline-form" method="post" action="{% url 'add_event' animal.pk %}" style="margin-top:.6rem">{% csrf_token %}
+          <div class="field"><label>Type</label>
+            <select name="milestone_type" required>
+              {% for mt in milestone_types %}
+                <option value="{{ mt.pk }}">{{ mt.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field"><label>Label</label><input name="label" placeholder="optional"></div>
+          <div class="field"><label>Due</label><input type="date" name="due_date" required></div>
+          <button class="btn small" type="submit">Add</button>
+        </form>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="cardhead">Placement history</div>
+  <div class="tablewrap"><table class="data">
+    <thead><tr><th>Household</th><th>Type</th><th>Start</th><th>End</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for p in placements %}
+        <tr><td><a href="{{ p.household.get_absolute_url }}">{{ p.household.name }}</a></td>
+        <td>{{ p.get_placement_type_display }}</td><td>{{ p.start_date }}</td>
+        <td>{% if p.end_date %}{{ p.end_date }}{% else %}<em>current</em>{% endif %}</td><td>{{ p.notes }}</td></tr>
+      {% empty %}<tr><td colspan="5" style="color:var(--ink-soft)">No placements yet.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

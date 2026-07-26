@@ -1,0 +1,62 @@
+{% extends "base_internal.html" %}
+{% block title %}Application pipeline — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div><h1>Application pipeline</h1><div class="sub">Drag cards between stages — changes save instantly.</div></div>
+  <div class="filters">
+    <a class="btn small {% if not type_filter %}{% else %}secondary{% endif %}" href="{% url 'kanban' %}">All</a>
+    <a class="btn small {% if type_filter == 'foster' %}{% else %}secondary{% endif %}" href="{% url 'kanban' %}?type=foster">Foster</a>
+    <a class="btn small {% if type_filter == 'adoption' %}{% else %}secondary{% endif %}" href="{% url 'kanban' %}?type=adoption">Adoption</a>
+  </div>
+</div>
+
+<div class="board" id="board">
+  {% for col in columns %}
+    <div class="col">
+      <h3>{{ col.label }} <span class="count">{{ col.apps|length }}</span></h3>
+      <ul data-stage="{{ col.stage }}">
+        {% for app in col.apps %}
+          <li class="appcard" data-id="{{ app.pk }}">
+            <span class="pill {{ app.app_type }} type">{{ app.get_app_type_display }}</span>
+            <a class="hh" href="{{ app.household.get_absolute_url }}">{{ app.household.name }}</a>
+            <div class="meta">
+              {% if app.animal %}→ {{ app.animal.name }}<br>{% endif %}
+              {{ app.created_at|date:"M j" }}
+              {% for t in app.household.tags.all|slice:":3" %}· {{ t.name }}{% endfor %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var csrf = "{{ csrf_token }}";
+  document.querySelectorAll("#board ul").forEach(function (list) {
+    new Sortable(list, {
+      group: "pipeline",
+      animation: 120,
+      onEnd: function (evt) {
+        var stage = evt.to.dataset.stage;
+        var id = evt.item.dataset.id;
+        var order = Array.prototype.map.call(evt.to.children, function (li) { return li.dataset.id; }).join(",");
+        var body = new URLSearchParams({ stage: stage, order: order });
+        fetch("/app/people/applications/" + id + "/move/", {
+          method: "POST",
+          headers: { "X-CSRFToken": csrf, "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+        }).then(function (r) {
+          if (!r.ok) { window.location.reload(); }
+          // refresh column counts
+          document.querySelectorAll("#board .col").forEach(function (col) {
+            col.querySelector(".count").textContent = col.querySelectorAll("li").length;
+          });
+        });
+      },
+    });
+  });
+});
+</script>
+{% endblock %}

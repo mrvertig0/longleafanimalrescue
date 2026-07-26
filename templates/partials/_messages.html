@@ -1,0 +1,7 @@
+{% if messages %}
+<div class="messages" x-data x-init="setTimeout(() => $el.remove(), 5000)">
+  {% for m in messages %}
+    <div class="toast {{ m.tags }}">{{ m }}</div>
+  {% endfor %}
+</div>
+{% endif %}

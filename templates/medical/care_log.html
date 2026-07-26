@@ -1,0 +1,31 @@
+{% extends "base_internal.html" %}
+{% block title %}Daily care log — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div><h1>Daily care log</h1>
+    <div class="sub">Check off treatments as fosters text in. Logged as {{ request.user.get_username }}.</div></div>
+  <div class="filters">
+    <a class="btn small secondary" href="?date={{ prev_day|date:'Y-m-d' }}">← {{ prev_day|date:"M j" }}</a>
+    <strong>{{ day|date:"l, M j, Y" }}{% if day == today %} (today){% endif %}</strong>
+    <a class="btn small secondary" href="?date={{ next_day|date:'Y-m-d' }}">{{ next_day|date:"M j" }} →</a>
+  </div>
+</div>
+
+<div class="card cardbody carelog">
+  {% for row in rows %}
+    <div class="animalrow">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
+        <a href="{{ row.animal.get_absolute_url }}"><strong>{{ row.animal.name }}</strong></a>
+        <span style="color:var(--ink-soft);font-size:.85rem">{{ row.animal.placement_display }}</span>
+      </div>
+      <div>
+        {% for m in row.meds %}
+          {% include "medical/_med_checkbox.html" with row=m %}
+        {% endfor %}
+      </div>
+    </div>
+  {% empty %}
+    <p style="color:var(--ink-soft);text-align:center;padding:1.5rem">No active medications on {{ day|date:"M j" }}. Add medications from an animal's page and they'll appear here.</p>
+  {% endfor %}
+</div>
+{% endblock %}
