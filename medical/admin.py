@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import MedicalEvent, Medication, MedLogEntry, MilestoneType
+from .models import MedicalEvent, MedicalRecord, Medication, MilestoneType
 
 
 @admin.register(MilestoneType)
@@ -14,12 +14,11 @@ class MedicalEventAdmin(admin.ModelAdmin):
     list_filter = ["milestone_type"]
 
 
-class MedLogInline(admin.TabularInline):
-    model = MedLogEntry
-    extra = 0
-
-
 @admin.register(Medication)
 class MedicationAdmin(admin.ModelAdmin):
     list_display = ["name", "animal", "frequency", "start_date", "end_date"]
-    inlines = [MedLogInline]
+
+
+@admin.register(MedicalRecord)
+class MedicalRecordAdmin(admin.ModelAdmin):
+    list_display = ["animal", "label", "uploaded_at", "uploaded_by"]

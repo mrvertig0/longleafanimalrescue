@@ -98,15 +98,9 @@ class Animal(models.Model):
         today = datetime.date.today()
         window = today + datetime.timedelta(days=settings.MEDICAL_ALERT_WINDOW_DAYS)
         events = [e for e in self.medical_events.all() if e.completed_date is None]
-        meds_due = [
-            m for m in self.medications.all()
-            if m.is_active and not any(
-                log.date == today and log.given for log in m.log_entries.all()
-            )
-        ]
         if any(e.due_date < today for e in events):
             return "overdue"
-        if any(e.due_date <= window for e in events) or meds_due:
+        if any(e.due_date <= window for e in events):
             return "due"
         return None
 
@@ -157,3 +151,40 @@ class Placement(models.Model):
     @property
     def is_active(self):
         return self.end_date is None
+
+    @property
+    def last_check_in(self):
+        return self.check_ins.order_by("-date").first()
+
+    @property
+    def next_check_in_due(self):
+        base = self.last_check_in.date if self.last_check_in else self.start_date
+        return base + datetime.timedelta(days=settings.FOSTER_CHECKIN_INTERVAL_DAYS)
+
+    @property
+    def check_in_state(self):
+        """'overdue' | 'due' | 'ok' — only meaningful for active foster placements."""
+        if not self.is_active or self.placement_type != self.Type.FOSTER:
+            return None
+        today = datetime.date.today()
+        due = self.next_check_in_due
+        if due < today:
+            return "overdue"
+        if due <= today + datetime.timedelta(days=2):
+            return "due"
+        return "ok"
+
+
+class FosterCheckIn(models.Model):
+    """A logged admin check-in with a foster household about an animal in their care."""
+
+    placement = models.ForeignKey(Placement, on_delete=models.CASCADE, related_name="check_ins")
+    date = models.DateField(default=datetime.date.today)
+    checked_by = models.CharField(max_length=80, blank=True, default="")
+    notes = models.CharField(max_length=300, blank=True, default="", help_text="e.g. “Texted foster, all well.”")
+
+    class Meta:
+        ordering = ["-date"]
+
+    def __str__(self):
+        return f"Check-in on {self.placement} — {self.date}"

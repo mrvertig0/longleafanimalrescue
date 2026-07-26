@@ -1,0 +1,63 @@
+{% extends "base_internal.html" %}
+{% block title %}Reminders — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>Reminders</h1>
+    <div class="sub">Medications, appointments, and check-ins due for foster households.
+      {% if overdue_count %}<strong style="color:var(--red)">{{ overdue_count }} overdue</strong>.{% else %}Nothing overdue.{% endif %}</div>
+  </div>
+</div>
+
+{% if not sending_configured %}
+  <div class="card cardbody" style="margin-bottom:1rem;background:var(--amber-bg);border-color:var(--amber)">
+    <strong>Automatic sending isn't set up yet.</strong> Use "Open in Gmail" to pop open a
+    pre-filled draft, or "Text" if you're on your phone — either way you still hit send yourself.
+    Then mark it handled so it won't show again today. A real provider (Twilio/SendGrid) can
+    replace this later without changing anything else — see <code>reminders/providers.py</code>.
+  </div>
+{% endif %}
+
+<div style="display:grid;gap:.8rem">
+  {% for r in reminders %}
+    <div class="card cardbody" style="{% if r.urgency == 'overdue' %}box-shadow:inset 3px 0 0 var(--red), var(--shadow);{% elif r.urgency == 'due' %}box-shadow:inset 3px 0 0 var(--amber), var(--shadow);{% endif %}">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.6rem;align-items:flex-start">
+        <div>
+          <span class="pill {% if r.kind == 'medication' %}foster{% elif r.kind == 'appointment' %}pending{% else %}available{% endif %}">{{ r.kind|title }}</span>
+          {% if r.urgency == 'overdue' %}<span class="badge overdue">overdue</span>{% elif r.urgency == 'due' %}<span class="badge due">due soon</span>{% endif %}
+          <div style="margin-top:.3rem"><strong><a href="{{ r.placement.animal.get_absolute_url }}">{{ r.placement.animal.name }}</a></strong>
+            with <a href="{{ r.placement.household.get_absolute_url }}">{{ r.placement.household.name }}</a>
+            <span style="color:var(--ink-soft);font-size:.85rem"> — {{ r.label }}</span>
+          </div>
+          <div style="color:var(--ink-soft);font-size:.85rem;margin-top:.2rem">
+            {% if r.placement.household.phone %}📱 {{ r.placement.household.phone }}{% endif %}
+            {% if r.placement.household.email %}{% if r.placement.household.phone %} · {% endif %}✉️ {{ r.placement.household.email }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:.6rem;background:var(--paper);border-radius:8px;padding:.6rem .8rem;font-size:.92rem">
+        {{ r.body }}
+      </div>
+      <form method="post" action="{% url 'mark_reminder_sent' %}" style="margin-top:.5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="{{ r.kind }}">
+        <input type="hidden" name="ref_id" value="{{ r.ref_id }}">
+        <input type="hidden" name="placement_id" value="{{ r.placement.pk }}">
+        <input type="hidden" name="body" value="{{ r.body }}">
+        <input type="hidden" name="channel" value="{% if r.placement.household.phone %}sms{% else %}email{% endif %}">
+        {% if r.gmail_url %}
+          <a class="btn small secondary" target="_blank" rel="noopener" href="{{ r.gmail_url }}">✉️ Open in Gmail</a>
+        {% endif %}
+        {% if r.sms_url %}
+          <a class="btn small secondary" href="{{ r.sms_url }}">📱 Text (on phone)</a>
+        {% endif %}
+        <button class="btn small secondary" type="button"
+                onclick="navigator.clipboard.writeText(this.closest('.card').querySelector('.field').textContent.trim()); this.textContent='Copied!'">Copy message</button>
+        <button class="btn small" type="submit">Mark handled</button>
+      </form>
+    </div>
+  {% empty %}
+    <div class="card cardbody" style="text-align:center;color:var(--ink-soft)">Nothing due right now — all caught up.</div>
+  {% endfor %}
+</div>
+{% endblock %}

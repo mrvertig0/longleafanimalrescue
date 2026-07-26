@@ -9,9 +9,9 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from animals.models import Animal, Placement
+from animals.models import Animal, FosterCheckIn, Placement
 from medical.engine import ensure_milestone_types, generate_schedule
-from medical.models import MedicalEvent, Medication, MedLogEntry, MilestoneType
+from medical.models import MedicalEvent, Medication, MilestoneType
 from people.models import Application, Household, Person, ResidentPet, Tag
 from people.services import ensure_tags
 
@@ -116,23 +116,24 @@ class Command(BaseCommand):
         Placement.objects.create(animal=willow, household=rivera, placement_type="foster",
                                  start_date=TODAY - timedelta(days=195), end_date=TODAY - timedelta(days=160))
 
-        # ---------- medications + logs ----------
-        panacur = Medication.objects.create(
+        # ---------- medications ----------
+        Medication.objects.create(
             animal=clover, name="Panacur", dosage="0.5 ml", frequency="Once daily",
             start_date=TODAY - timedelta(days=3), end_date=TODAY + timedelta(days=2),
             instructions="With food; foster texts photo after dosing.")
         Medication.objects.create(
             animal=maple, name="Panacur", dosage="0.5 ml", frequency="Once daily",
             start_date=TODAY - timedelta(days=3), end_date=TODAY + timedelta(days=2))
-        doxy = Medication.objects.create(
+        Medication.objects.create(
             animal=banjo, name="Doxycycline", dosage="100 mg", frequency="Twice daily",
             start_date=TODAY - timedelta(days=10), end_date=TODAY + timedelta(days=18),
             instructions="Heartworm treatment support — do not skip.")
-        for d in range(1, 4):
-            MedLogEntry.objects.create(medication=panacur, date=TODAY - timedelta(days=d),
-                                       given=True, logged_by="admin", note="foster texted")
-        MedLogEntry.objects.create(medication=doxy, date=TODAY - timedelta(days=1),
-                                   given=True, logged_by="admin")
+
+        # ---------- foster check-ins (one overdue, one on track) ----------
+        chen_placement = Placement.objects.get(animal=clover, household=chen)
+        FosterCheckIn.objects.create(placement=chen_placement, date=TODAY - timedelta(days=14),
+                                     checked_by="admin", notes="Kittens eating well, litter box on track.")
+        # No check-in logged for Banjo/Rivera since placement — will show overdue if > 10 days old.
 
         # ---------- applications across the pipeline ----------
         Application.objects.create(household=blake, app_type="adoption", animal=pepper,

@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "animals",
     "people",
     "medical",
+    "reminders",
     "publicsite",
 ]
 
@@ -106,3 +107,6 @@ MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"
 
 # Medical alert window: events due within this many days flag amber.
 MEDICAL_ALERT_WINDOW_DAYS = int(os.environ.get("MEDICAL_ALERT_WINDOW_DAYS", "7"))
+
+# How often admins should check in with a foster about an animal in their care.
+FOSTER_CHECKIN_INTERVAL_DAYS = int(os.environ.get("FOSTER_CHECKIN_INTERVAL_DAYS", "10"))

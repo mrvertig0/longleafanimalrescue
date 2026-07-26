@@ -1,0 +1,46 @@
+{% extends "base_internal.html" %}
+{% block title %}Foster check-ins — Longleaf HQ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>Foster check-ins</h1>
+    <div class="sub">Every foster placement gets an admin check-in at least every 10 days.
+      {% if overdue_count %}<strong style="color:var(--red)">{{ overdue_count }} overdue</strong> right now.
+      {% else %}All caught up.{% endif %}</div>
+  </div>
+</div>
+
+<div class="card tablewrap">
+  <table class="data">
+    <thead><tr><th>Animal</th><th>Foster household</th><th>Last check-in</th><th>Next due</th><th>Status</th><th>Log a check-in</th></tr></thead>
+    <tbody>
+      {% for p in rows %}
+        <tr class="{% if p.check_in_state == 'overdue' %}rail-red{% elif p.check_in_state == 'due' %}rail-amber{% endif %}">
+          <td><a href="{{ p.animal.get_absolute_url }}"><strong>{{ p.animal.name }}</strong></a></td>
+          <td><a href="{{ p.household.get_absolute_url }}">{{ p.household.name }}</a></td>
+          <td>
+            {% with last=p.last_check_in %}
+              {% if last %}{{ last.date }}<br><span style="color:var(--ink-soft);font-size:.78rem">{{ last.checked_by }}{% if last.notes %} — “{{ last.notes }}”{% endif %}</span>
+              {% else %}<em style="color:var(--ink-soft)">never — since placement start {{ p.start_date }}</em>{% endif %}
+            {% endwith %}
+          </td>
+          <td>{{ p.next_check_in_due }}</td>
+          <td>
+            {% if p.check_in_state == 'overdue' %}<span class="badge overdue"><span class="dot red"></span> Overdue</span>
+            {% elif p.check_in_state == 'due' %}<span class="badge due"><span class="dot amber"></span> Due soon</span>
+            {% else %}<span class="badge ok"><span class="dot green"></span> On track</span>{% endif %}
+          </td>
+          <td>
+            <form class="inline-form" method="post" action="{% url 'log_checkin' p.pk %}">{% csrf_token %}
+              <input name="notes" placeholder="Optional note…" style="width:160px">
+              <button class="btn small" type="submit">Log check-in</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:2rem">No active foster placements right now.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -79,6 +79,21 @@ If you'd rather not use Render: the same `Procfile` and `DATABASE_URL` env var
 work unchanged on Railway or Fly.io, and PythonAnywhere is a good very-low-cost
 option if you're comfortable with a bit more manual setup.
 
+## Reminders (`/app/reminders/`)
+
+Pulls together everything a foster household should hear about — active
+medications, upcoming/overdue appointments (the vaccine/milestone timeline),
+and overdue check-ins — into one prioritized list with a pre-written message
+per item. No SMS/email provider is wired up yet, so right now staff copy the
+message and text/email it manually, then click "Mark handled" so it won't
+resurface today (`reminders/models.py` → `ReminderSent`).
+
+To wire up real sending later: fill in `reminders/providers.py`'s
+`send_sms`/`send_email` functions (a Twilio and a Django-email example are
+sketched in that file's docstring) and flip `SENDING_CONFIGURED = True`. Every
+call site already routes through those two functions, so nothing else in the
+app needs to change.
+
 ## Where the business rules live
 
 | Rule | File |

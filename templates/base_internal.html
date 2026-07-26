@@ -15,7 +15,8 @@
     <a href="{% url 'dashboard' %}" style="text-decoration:none">{% include "partials/_mark.html" with label="Longleaf HQ" %}</a>
     {% with path=request.resolver_match.url_name %}
     <a class="nav {% if path == 'dashboard' or path == 'animal_detail' %}active{% endif %}" href="{% url 'dashboard' %}">Animals</a>
-    <a class="nav {% if path == 'care_log' %}active{% endif %}" href="{% url 'care_log' %}">Daily care log</a>
+    <a class="nav {% if path == 'foster_checkins' %}active{% endif %}" href="{% url 'foster_checkins' %}">Foster check-ins</a>
+    <a class="nav {% if path == 'reminder_list' %}active{% endif %}" href="{% url 'reminder_list' %}">Reminders</a>
     <a class="nav {% if path == 'household_list' or path == 'household_detail' %}active{% endif %}" href="{% url 'household_list' %}">Households</a>
     <a class="nav {% if path == 'kanban' %}active{% endif %}" href="{% url 'kanban' %}">Applications</a>
     {% endwith %}

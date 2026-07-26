@@ -86,20 +86,25 @@ class Medication(models.Model):
         return self.start_date <= day and (self.end_date is None or self.end_date >= day)
 
 
-class MedLogEntry(models.Model):
-    """One checkbox: was this medication given on this date?"""
+def record_upload_path(instance, filename):
+    return f"medical_records/{instance.animal_id}/{filename}"
 
-    medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name="log_entries")
-    date = models.DateField()
-    given = models.BooleanField(default=False)
-    logged_by = models.CharField(max_length=80, blank=True, default="")
-    note = models.CharField(max_length=200, blank=True, default="", help_text="e.g. “foster texted 8:15am”")
-    logged_at = models.DateTimeField(default=timezone.now)
+
+class MedicalRecord(models.Model):
+    """An uploaded document (vet report, lab result, discharge paperwork, etc)."""
+
+    animal = models.ForeignKey("animals.Animal", on_delete=models.CASCADE, related_name="medical_records")
+    file = models.FileField(upload_to=record_upload_path)
+    label = models.CharField(max_length=120, blank=True, default="", help_text="e.g. “Spay discharge paperwork”")
+    uploaded_at = models.DateTimeField(default=timezone.now)
+    uploaded_by = models.CharField(max_length=80, blank=True, default="")
 
     class Meta:
-        unique_together = [("medication", "date")]
-        ordering = ["-date"]
+        ordering = ["-uploaded_at"]
 
     def __str__(self):
-        state = "given" if self.given else "not given"
-        return f"{self.medication} on {self.date}: {state}"
+        return self.label or self.filename
+
+    @property
+    def filename(self):
+        return self.file.name.rsplit("/", 1)[-1]

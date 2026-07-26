@@ -20,7 +20,8 @@ def _dashboard_queryset():
         Animal.objects
         .prefetch_related(
             "medical_events__milestone_type",
-            "medications__log_entries",
+            "medications",
+            "medical_records",
             Prefetch("placements", queryset=Placement.objects.select_related("household")),
         )
     )
@@ -139,6 +140,36 @@ def add_placement(request, pk):
     else:
         messages.error(request, "Could not save placement — check the fields.")
     return redirect(animal)
+
+
+@login_required
+def foster_checkins(request):
+    """List active foster placements ranked by how overdue their check-in is."""
+    placements = (
+        Placement.objects.filter(end_date__isnull=True, placement_type=Placement.Type.FOSTER)
+        .select_related("animal", "household")
+        .prefetch_related("check_ins")
+    )
+    order = {"overdue": 0, "due": 1, "ok": 2}
+    rows = sorted(placements, key=lambda p: (order[p.check_in_state], p.next_check_in_due))
+    overdue_count = sum(1 for p in rows if p.check_in_state == "overdue")
+    return render(request, "animals/foster_checkins.html", {
+        "rows": rows, "overdue_count": overdue_count, "today": datetime.date.today(),
+    })
+
+
+@login_required
+@require_POST
+def log_checkin(request, placement_id):
+    placement = get_object_or_404(Placement, pk=placement_id, placement_type=Placement.Type.FOSTER)
+    from .models import FosterCheckIn
+    FosterCheckIn.objects.create(
+        placement=placement,
+        checked_by=request.user.get_username(),
+        notes=request.POST.get("notes", "").strip(),
+    )
+    messages.success(request, f"Check-in logged for {placement.animal.name} with {placement.household}.")
+    return redirect("foster_checkins")
 
 
 @login_required
